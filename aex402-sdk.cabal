@@ -1,0 +1,68 @@
+cabal-version:      3.0
+name:               aex402-sdk
+version:            0.1.0.0
+synopsis:           Haskell SDK for AeX402 AMM on Solana
+description:
+    A pure Haskell SDK for interacting with the AeX402 hybrid AMM program on Solana.
+    Supports stable pools (high amp) and volatile pools (constant product),
+    N-token pools (up to 8 tokens), farming, lottery, TWAP oracle, and more.
+
+    Program ID: 3AMM53MsJZy2Jvf7PeHHga3bsGjWV4TSaYz29WUtcdje
+
+license:            MIT
+license-file:       LICENSE
+author:             AeX402 Team
+maintainer:         dev@aex402.io
+copyright:          2024 AeX402 Team
+category:           Blockchain, Finance
+build-type:         Simple
+extra-doc-files:    README.md
+
+common warnings
+    ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates
+                 -Wincomplete-uni-patterns -Wmissing-export-lists
+                 -Wmissing-home-modules -Wpartial-fields -Wredundant-constraints
+
+library
+    import:           warnings
+    exposed-modules:
+        AeX402
+        AeX402.Constants
+        AeX402.Types
+        AeX402.Accounts
+        AeX402.Instructions
+        AeX402.Math
+        AeX402.PDA
+
+    build-depends:
+        base >= 4.14 && < 5,
+        bytestring >= 0.10 && < 0.13,
+        binary >= 0.8 && < 0.9,
+        text >= 1.2 && < 2.2,
+        containers >= 0.6 && < 0.8,
+        cryptonite >= 0.27 && < 0.35,
+        memory >= 0.15 && < 0.19,
+        base16-bytestring >= 0.1 && < 1.1,
+        base58-bytestring >= 0.1 && < 0.2
+
+    hs-source-dirs:   src
+    default-language: Haskell2010
+    default-extensions:
+        OverloadedStrings
+        DeriveGeneric
+        RecordWildCards
+        LambdaCase
+        StrictData
+
+test-suite aex402-sdk-test
+    import:           warnings
+    default-language: Haskell2010
+    type:             exitcode-stdio-1.0
+    hs-source-dirs:   test
+    main-is:          Main.hs
+    build-depends:
+        base >= 4.14 && < 5,
+        aex402-sdk,
+        bytestring,
+        hspec >= 2.7 && < 2.12,
+        QuickCheck >= 2.13 && < 2.16
