@@ -64,7 +64,9 @@ calcD
     -> Integer  -- ^ Amplification coefficient
     -> Maybe Integer
 calcD x y amp
+    | x == 0 || y == 0 = Just 0  -- Guard against division by zero
     | s == 0 = Just 0
+    | ann == 0 = Nothing  -- Guard against zero amp
     | otherwise = newton 0 s
   where
     s = x + y
@@ -102,6 +104,7 @@ calcY
     -> Maybe Integer
 calcY xNew d amp
     | xNew <= 0 || d <= 0 = Nothing
+    | ann == 0 = Nothing  -- Guard against zero amp
     | otherwise = newton 0 d
   where
     ann = amp * 4
@@ -198,25 +201,29 @@ simulateSwapN
     -> Integer    -- ^ Fee in basis points
     -> Maybe Integer
 simulateSwapN balances fromIdx toIdx amountIn amp feeBps
-    | fromIdx < 0 || fromIdx >= length balances = Nothing
-    | toIdx < 0 || toIdx >= length balances = Nothing
+    | fromIdx < 0 || fromIdx >= n = Nothing
+    | toIdx < 0 || toIdx >= n = Nothing
     | fromIdx == toIdx = Nothing
     | otherwise = do
         d <- calcDN balances amp
         let newBalances = updateAt fromIdx (+ amountIn) balances
-        let balOut = balances !! toIdx
+        let balOut = atIndex toIdx balances
         -- For N-pool, we need to solve for the new output balance
         -- This is a simplified approach - proper implementation would use calcYN
         newD <- calcDN newBalances amp
         -- Approximate output using the change in invariant
-        let amountOut = if newD >= d
+        let amountOut = if newD >= d && d > 0
                 then balOut * (newD - d) `div` d
                 else 0
         let fee = amountOut * feeBps `div` feeDenominator
         return (amountOut - fee)
   where
+    n = length balances
+    -- Safe indexing with bounds already checked above
+    atIndex :: Int -> [Integer] -> Integer
+    atIndex idx xs = xs !! idx
     updateAt :: Int -> (Integer -> Integer) -> [Integer] -> [Integer]
-    updateAt idx f xs = take idx xs ++ [f (xs !! idx)] ++ drop (idx + 1) xs
+    updateAt idx f xs = take idx xs ++ [f (atIndex idx xs)] ++ drop (idx + 1) xs
 
 -- | Calculate price impact for a swap (as a fraction, e.g., 0.01 = 1%)
 calcPriceImpact
@@ -226,11 +233,13 @@ calcPriceImpact
     -> Integer  -- ^ Amplification coefficient
     -> Integer  -- ^ Fee in basis points
     -> Maybe Double
-calcPriceImpact balIn balOut amountIn amp feeBps = do
-    amountOut <- simulateSwap balIn balOut amountIn amp feeBps
-    -- Price impact = 1 - (amountOut / amountIn)
-    let ratio = fromIntegral amountOut / fromIntegral amountIn :: Double
-    return (1 - ratio)
+calcPriceImpact balIn balOut amountIn amp feeBps
+    | amountIn <= 0 = Nothing  -- Guard against division by zero
+    | otherwise = do
+        amountOut <- simulateSwap balIn balOut amountIn amp feeBps
+        -- Price impact = 1 - (amountOut / amountIn)
+        let ratio = fromIntegral amountOut / fromIntegral amountIn :: Double
+        return (1 - ratio)
 
 -- ============================================================================
 -- Liquidity Math
